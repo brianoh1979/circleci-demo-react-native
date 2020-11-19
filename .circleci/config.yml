@@ -49,6 +49,7 @@ jobs:
     working_directory: ~/demo-react-native
     macos:
       xcode: 11.3.0
+    resource_class: large
     environment:
       FL_OUTPUT_DIR: output
       FASTLANE_LANE: test
@@ -148,9 +149,9 @@ workflows:
   node-android-ios:
     jobs:
       - node
-      - android-build-and-test:
-          requires:
-            - node
+ #     - android-build-and-test:
+ #         requires:
+ #           - node
       - macos-build-and-test:
           requires:
             - node
