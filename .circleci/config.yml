@@ -48,6 +48,7 @@ jobs:
 
     steps:
       - checkout
+      - run: mkdir /Users/distiller/demo-react-native/output
       - run: mkdir /Users/distiller/demo-react-native/output/scan
       - restore_cache:
           key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
