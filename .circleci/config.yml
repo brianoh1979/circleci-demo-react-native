@@ -44,10 +44,11 @@ jobs:
     environment:
       FL_OUTPUT_DIR: output
       FASTLANE_LANE: test
+      HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
       - checkout
-      - run: mkdir output/scan
+      - run: mkdir /Users/distiller/demo-react-native/output/scan
       - restore_cache:
           key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
       - restore_cache:
