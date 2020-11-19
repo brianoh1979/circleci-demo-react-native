@@ -47,6 +47,7 @@ jobs:
 
     steps:
       - checkout
+      - run: mkdir output/scan
       - restore_cache:
           key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
       - restore_cache:
@@ -82,7 +83,7 @@ jobs:
             - ios/Pods
       - run:
           name: pre-start simulator
-          command: xcrun instruments -w "iPhone 11 Pro (13.3) [" || true
+          command: xcrun instruments -w "iPhone 5s (12.4) [" || true
       - run:
           name: Fastlane
           command: bundle exec fastlane $FASTLANE_LANE
