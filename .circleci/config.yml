@@ -1,143 +1,35 @@
+# .circleci/config.yml
 version: 2.0
 jobs:
-  node:
-    working_directory: ~/demo-react-native
-    docker:
-      - image: cimg/node:12.16
-
+  build:
+    machine:
+      image: android:202102-01
+    # To optimize build times, we recommend "large" and above for Android-related jobs
+    resource_class: large
     steps:
       - checkout
-      - restore_cache:
-          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
-      - restore_cache:
-          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
-      - run: yarn install
-      - save_cache:
-          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
-          paths:
-            - ~/.cache/yarn
-      - save_cache:
-          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
-          paths:
-            - node_modules
       - run:
-          name: jest tests
+          name: Create avd
           command: |
-            mkdir -p test-results/jest
-            yarn run test
-          environment:
-            JEST_JUNIT_OUTPUT: test-results/jest/junit.xml
-      - persist_to_workspace:
-          root: ~/demo-react-native
-          paths:
-            - node_modules
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
-
-  macos-build-and-test:
-    working_directory: ~/demo-react-native
-    macos:
-      xcode: 11.3.0
-    resource_class: medium
-    environment:
-      FL_OUTPUT_DIR: output
-      FASTLANE_LANE: test
-      HOMEBREW_NO_AUTO_UPDATE: 1
-
-    steps:
-      - checkout
-      - run: mkdir /Users/distiller/demo-react-native/output
-      - run: mkdir /Users/distiller/demo-react-native/output/scan
-      - restore_cache:
-          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
-      - restore_cache:
-          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
-      - run: yarn install
-      - save_cache:
-          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
-          paths:
-            - ~/.cache/yarn
-      - save_cache:
-          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
-          paths:
-            - node_modules
-      - restore_cache:
-          key: bundle-v1-{{ checksum "ios/Gemfile.lock" }}-{{ arch }}
-      #Pods directory is ignored to match default RN setup, but can also check them into source control
-      #https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
-      - restore_cache:
-          key: pods-v1-{{ checksum "ios/Podfile.lock" }}-{{ arch }}
-      - run: 
-          command: pod install
-          working_directory: ios
-      - run: 
-          command: bundle install
-          working_directory: ios
-      - save_cache:
-          key: bundle-v1-{{ checksum "ios/Gemfile.lock" }}-{{ arch }}
-          paths:
-            - vendor/bundle
-      - save_cache:
-          key: pods-v1-{{ checksum "ios/Podfile.lock" }}-{{ arch }}
-          paths:
-            - ios/Pods
+            SYSTEM_IMAGES="system-images;android-29;default;x86"
+            sdkmanager "$SYSTEM_IMAGES"
+            echo "no" | avdmanager --verbose create avd -n test -k "$SYSTEM_IMAGES"
       - run:
-          name: pre-start simulator
-          command: xcrun instruments -w "iPhone 5s (12.4) [" || true
-      - run:
-          name: Fastlane
-          command: bundle exec fastlane $FASTLANE_LANE
-          working_directory: ios
-      - store_artifacts:
-          path: output        
-      - store_test_results:
-          path: output/scan
-            
-  android-build-and-test:
-    working_directory: ~/demo-react-native/android
-    docker:
-      - image: circleci/android:api-29-node
-    steps:
-      - checkout:
-          path: ~/demo-react-native
-
-      - attach_workspace:
-          at: ~/demo-react-native
-
-      - restore_cache:
-          key: bundle-v1-{{ checksum "Gemfile.lock" }}-{{ arch }}
-
-      - run: bundle install
-
-      - save_cache:
-          key: bundle-v1-{{ checksum "Gemfile.lock" }}-{{ arch }}
-          paths:
-            - vendor/bundle
-
-      - run:
-          name: fastlane tests
+          name: Launch emulator
           command: |
-            mkdir -p test-results/fastlane
-            bundle exec fastlane test
-            mv fastlane/report.xml test-results/fastlane
-
-      - store_test_results:
-          path: test-results
-
-      - store_artifacts:
-          path: test-results
-
+            emulator -avd test -delay-adb -verbose -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          background: true
+      - run:
+          name: Wait for emulator to start
+          command: |
+            circle-android wait-for-boot
+      - run:
+          name: Run UI tests
+          command: |
+            ./gradlew connectedDebugAndroidTest
 workflows:
   version: 2
-  node-android-ios:
+  build:
     jobs:
-      - node
-      - android-build-and-test:
-          requires:
-            - node
- #     - macos-build-and-test:
-          requires:
-            - node
+      - build
             
