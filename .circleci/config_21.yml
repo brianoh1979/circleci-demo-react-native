@@ -1,4 +1,4 @@
-version: 2.0
+version: 2.1
 jobs:
   node:
     working_directory: ~/demo-react-native
@@ -133,10 +133,10 @@ workflows:
   node-android-ios:
     jobs:
       - node
-      - android-build-and-test:
-          requires:
-            - node
- #     - macos-build-and-test:
+ #     - android-build-and-test:
+ #         requires:
+ #           - node
+      - macos-build-and-test:
           requires:
             - node
             
